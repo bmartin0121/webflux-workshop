@@ -349,3 +349,56 @@ public void getUserByName() {
             .isEqualTo(user);
 }
 ----
+
+=== 2019.03.28.
+* https://bclozel.github.io/webflux-workshop/#_use_thymeleaf_to_render_html_views[Use Thymeleaf to render HTML views]
++
+Home Controller
++
+[source,java]
+----
+@Controller // <1>
+public class HomeController {
+    private final TradingUserRepository repo;
+
+    public HomeController(TradingUserRepository repo) {
+        this.repo = repo;
+    }
+
+    @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
+    public String getAllUsers(Model model) {
+        Flux<TradingUser> allUsers = repo.findAll();
+        model.addAttribute("users", allUsers); // <2>
+        return "index"; // <1>
+    }
+}
+----
+<1> Used plain vanilla `@Controller` and returned the template name `"index"` to use the view given in `resources/templates/index.html`.
+<2> `Flux<TradingUser>` is resolved by Spring WebFlux, so it is valid to pass it as model attribute.
+
+* https://bclozel.github.io/webflux-workshop/#_use_the_webclient_to_stream_json_to_the_browser[Use the WebClient to stream JSON to the browser]
++
+Quotes Controller
++
+[source,java]
+----
+@Controller
+public class QuotesController {
+    @GetMapping(value = "/quotes", produces = TEXT_HTML_VALUE)
+    public String getQuotes() {
+        return "quotes";
+    }
+
+    @GetMapping(value = "/quotes/feed", produces = TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public Flux<Quote> getFeed() {
+        return WebClient.create()
+                .get()
+                .uri("http://localhost:8081/quotes")
+                .accept(APPLICATION_STREAM_JSON)
+                .retrieve()
+                .bodyToFlux(Quote.class); // <1>
+    }
+}
+----
+NOTE: Current solution in `getFeed()` creates a new `Flux<Quote>` per call. `Flux.share()` could be used for making a hot flux.
