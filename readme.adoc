@@ -8,6 +8,7 @@ Following https://bclozel.github.io/webflux-workshop/[Spring WebFlux Workshop]
 +
 Router Function
 +
+[source,java]
 ----
 @Configuration
 public class QuoteRouter {
@@ -26,6 +27,7 @@ public class QuoteRouter {
 +
 Handler Function
 +
+[source,java]
 ----
 @Component
 public class QuoteHandler {
@@ -44,6 +46,7 @@ public class QuoteHandler {
 +
 Router Function
 +
+[source,java]
 ----
 @Bean
 public RouterFunction<ServerResponse> echoRouter(QuoteHandler handler) {
@@ -58,6 +61,7 @@ public RouterFunction<ServerResponse> echoRouter(QuoteHandler handler) {
 +
 Handler Function
 +
+[source,java]
 ----
 public Mono<ServerResponse> echo(ServerRequest request) {
     return ServerResponse
@@ -70,6 +74,7 @@ public Mono<ServerResponse> echo(ServerRequest request) {
 +
 Router Function
 +
+[source,java]
 ----
 @Bean
 public RouterFunction<ServerResponse> quoteRouter(QuoteHandler handler) {
@@ -82,6 +87,7 @@ public RouterFunction<ServerResponse> quoteRouter(QuoteHandler handler) {
 +
 Handler Function
 +
+[source,java]
 ----
 @Component
 public class QuoteHandler {
@@ -119,6 +125,7 @@ Router Function
 +
 NOTE: Observe content type different from streaming endpoint
 +
+[source,java]
 ----
 @Bean
 public RouterFunction<ServerResponse> quoteLimitedVomitter(QuoteHandler handler) {
@@ -131,6 +138,7 @@ public RouterFunction<ServerResponse> quoteLimitedVomitter(QuoteHandler handler)
 +
 Handler Function
 +
+[source,java]
 ----
 public Mono<ServerResponse> streamNQuotes(ServerRequest request) {
     Long size = request
@@ -149,6 +157,7 @@ public Mono<ServerResponse> streamNQuotes(ServerRequest request) {
 +
 Test Class
 +
+[source,java]
 ----
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
@@ -165,6 +174,7 @@ NOTE: `RANDOM_PORT` starts server locally on a random port
 +
 Fixed Size Response Test
 +
+[source,java]
 ----
 @Test
 public void testFetchQuotes() {
@@ -185,6 +195,7 @@ public void testFetchQuotes() {
 +
 Streaming Endpoint Test
 +
+[source,java]
 ----
 @Test
 public void testFetchQuotesAsStreamWithStepVerifier() {
@@ -214,6 +225,7 @@ NOTE: New Spring Boot App with Reactive Web, Devtools, Thymeleaf, and Reactive M
 +
 TradingUser Entity
 +
+[source,java]
 ----
 @Document
 public class TradingUser {
@@ -228,6 +240,7 @@ public class TradingUser {
 +
 Reactive Mongo Repository
 +
+[source,java]
 ----
 public interface TradingUserRepository extends ReactiveMongoRepository<TradingUser, String> {
     Mono<TradingUser> findUserByUserName(String userName);
@@ -236,6 +249,7 @@ public interface TradingUserRepository extends ReactiveMongoRepository<TradingUs
 +
 CommandLineRunner to Fill Mongo Repo
 +
+[source,java]
 ----
 @Component
 public class UsersCommandLineRunner implements CommandLineRunner {
@@ -257,6 +271,7 @@ public class UsersCommandLineRunner implements CommandLineRunner {
 +
 Restcontroller for Users
 +
+[source,java]
 ----
 @GetMapping(value = "/users", produces = MediaType.APPLICATION_JSON_VALUE)
 public Flux<TradingUser> getAllUsers() {
@@ -274,6 +289,7 @@ public Mono<TradingUser> getUserByName(@PathVariable("username") String userName
 +
 Controller Unit Tests
 +
+[source,java]
 ----
 @RunWith(SpringRunner.class)
 @WebFluxTest
@@ -291,6 +307,7 @@ public class UserControllerTest {
 +
 Get All Users
 +
+[source,java]
 ----
 @Test
 public void testGetAllUsers() {
@@ -314,6 +331,7 @@ public void testGetAllUsers() {
 +
 Find User
 +
+[source,java]
 ----
 @Test
 public void getUserByName() {
