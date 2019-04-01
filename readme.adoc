@@ -403,3 +403,7 @@ public class QuotesController {
 }
 ----
 NOTE: Current solution in `getFeed()` creates a new `Flux<Quote>` per call. `Flux.share()` could be used for making a hot flux.
+
+* Calling the `http://localhost:8080/quotes` endpoint produces this fancy auto-updated diagram:
+
+image::img/stock_protfolio.PNG[My Stock Portfolio]
