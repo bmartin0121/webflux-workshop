@@ -407,3 +407,51 @@ NOTE: Current solution in `getFeed()` creates a new `Flux<Quote>` per call. `Flu
 * Calling the `http://localhost:8080/quotes` endpoint produces this fancy auto-updated diagram:
 
 image::img/stock_protfolio.PNG[My Stock Portfolio]
+
+=== 2019.04.05.
+* https://bclozel.github.io/webflux-workshop/#_create_and_configure_a_websockethandler[Create and Configure a WebSocketHandler]
++
+EchoWebSocketHandler
++
+[source,java]
+----
+@Component(value = "echoMessageHandler") // <1>
+public class EchoWebSocketHandler implements WebSocketHandler {
+
+    @Override
+    public Mono<Void> handle(WebSocketSession webSocketSession) {
+        return webSocketSession.send( // <3>
+                webSocketSession.receive() // <2>
+                        .delayElements(Duration.ofSeconds(1))
+                        .log());
+    }
+}
+----
+<1> We created a bean of this handler so we can reference it by its name in `EchoRouter` instead of instantiating it with `new`.
+<2> `receive()` returns a `Flux<WebSocketMessage>`, streaming incoming messages.
+<3> `send()` takes a `Publisher<WebSocketMessage>`, emitting outgoing messages and returns `Mono<Void>`.
+
++
+EchoRouter
++
+[source,java]
+----
+@Configuration
+public class EchoRouter {
+
+    @Bean
+    public HandlerMapping echoHandlerMapping() {
+        var handlerMapping = new SimpleUrlHandlerMapping();
+        handlerMapping.setUrlMap(Map.of("/websocket/echo","echoMessageHandler")); // <1>
+        handlerMapping.setOrder(2); // <2>
+        return handlerMapping;
+    }
+    @Bean
+    public WebSocketHandlerAdapter webSocketHandlerAdapter() {
+        return new WebSocketHandlerAdapter(); // <3>
+    }
+}
+----
+<1> We can map the URL to the desired `WebSocketHandler` by name. Alternatively we could pass the concrete object.
+<2> We had to set the order to any value but `Integer.MAX_VALUE`, because default is that and it means "non-ordered".
+<3> Enables websocket handling.
