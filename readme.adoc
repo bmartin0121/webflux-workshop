@@ -453,5 +453,5 @@ public class EchoRouter {
 }
 ----
 <1> We can map the URL to the desired `WebSocketHandler` by name. Alternatively we could pass the concrete object.
-<2> We had to set the order to any value but `Integer.MAX_VALUE`, because default is that and it means "non-ordered".
-<3> Enables websocket handling.
+<2> We had to set the order to any value but `Integer.MAX_VALUE` (or actually `Ordered.LOWEST_PRECEDENCE`), because that is the default and it causes a conflict with `ResourceWebHandler` mapped to `/**`.
+<3> Boilerplate that enables websocket handling.
