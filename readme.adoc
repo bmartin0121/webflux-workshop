@@ -455,3 +455,41 @@ public class EchoRouter {
 <1> We can map the URL to the desired `WebSocketHandler` by name. Alternatively we could pass the concrete object.
 <2> We had to set the order to any value but `Integer.MAX_VALUE` (or actually `Ordered.LOWEST_PRECEDENCE`), because that is the default and it causes a conflict with `ResourceWebHandler` mapped to `/**`.
 <3> Boilerplate that enables websocket handling.
+
+=== 2019.04.16.
+* https://bclozel.github.io/webflux-workshop/#_integration_tests_with_websocketclient[Integration tests with WebSocketClient]
++
+Instead of copy-pasting the given test, we started implementing one by ourselves. We are currently working on a solution with `StepVerifier` instead of collecting the response to a list and asserting on that like the old way.
++
+(Btw I have to admit that using `ReplayProcessor` for capturing the elements for later subscription is pretty smart.)
++
+So, currently we have this:
++
+[source,java]
+----
+@Test
+public void echo() throws Exception {
+    WebSocketClient webSocketClient = new StandardWebSocketClient();
+    webSocketClient.execute(getUrl("/websocket/echo"),
+        session -> session.send(Flux.just("1","2","4").map(session::textMessage))
+            .then(Mono.fromRunnable(()-> StepVerifier.create(session.receive())
+                .assertNext(message -> assertPayloadEquals(message, "1"))
+                .assertNext(message -> assertPayloadEquals(message, "2"))
+                .assertNext(message -> assertPayloadEquals(message, "4"))
+                .thenCancel() // <1>
+        )))
+    .block(); // <2>
+}
+
+private void assertPayloadEquals(WebSocketMessage message, String expectedPayload) {
+    assertThat(message.getPayloadAsText()).isEqualTo(expectedPayload);
+}
+----
+The main idea is to send the data and *after that* create a `StepVerifier` with the Flux received by the websocket and assert on the payload.
++
+<1> `thenCancel()` is for ending the assertion without waiting for the websocket to close.
+<2> `block()` is for not to terminate the test before finishing the exchange.
++
+This test is green, however assertions are not executed. Why?
++
+_Stay tuned! We will find out on the next session..._ :)

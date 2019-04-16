@@ -18,7 +18,7 @@ public class EchoRouter {
     public HandlerMapping echoHandlerMapping() {
         var handlerMapping = new SimpleUrlHandlerMapping();
         handlerMapping.setUrlMap(Map.of("/websocket/echo","echoMessageHandler"));
-        handlerMapping.setOrder(-2147483648);
+        handlerMapping.setOrder(10);
         return handlerMapping;
     }
     @Bean
