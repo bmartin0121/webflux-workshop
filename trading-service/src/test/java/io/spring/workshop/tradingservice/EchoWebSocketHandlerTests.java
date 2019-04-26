@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.client.StandardWebSocketClient;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
@@ -32,15 +33,21 @@ public class EchoWebSocketHandlerTests {
     @Test
     public void echo() throws Exception {
         WebSocketClient webSocketClient = new StandardWebSocketClient();
+        ReplayProcessor<WebSocketMessage> replayProcessor = ReplayProcessor.create();
+
         webSocketClient.execute(getUrl("/websocket/echo"),
                 session -> session.send(Flux.just("1", "2", "4").map(session::textMessage))
-                        .then(Mono.fromRunnable(() -> StepVerifier.create(session.receive())
-                                .assertNext(message -> assertPayloadEquals(message, "1"))
-                                .assertNext(message -> assertPayloadEquals(message, "2"))
-                                .assertNext(message -> assertPayloadEquals(message, "4"))
-                                .thenCancel()
-                        )))
+                        .thenMany(session.receive().take(3))
+                        .subscribeWith(replayProcessor)
+                        .then())
                 .block();
+
+        StepVerifier.create(replayProcessor)
+                .assertNext(message -> assertPayloadEquals(message, "1"))
+                .assertNext(message -> assertPayloadEquals(message, "2"))
+                .assertNext(message -> assertPayloadEquals(message, ":("))
+                .thenCancel()
+                .verify();
     }
 
     private void assertPayloadEquals(WebSocketMessage message, String expectedPayload) {

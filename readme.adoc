@@ -476,7 +476,8 @@ public void echo() throws Exception {
                 .assertNext(message -> assertPayloadEquals(message, "1"))
                 .assertNext(message -> assertPayloadEquals(message, "2"))
                 .assertNext(message -> assertPayloadEquals(message, "4"))
-                .thenCancel() // <1>
+                .thenCancel()
+                .verify() // <1>
         )))
     .block(); // <2>
 }
@@ -487,9 +488,63 @@ private void assertPayloadEquals(WebSocketMessage message, String expectedPayloa
 ----
 The main idea is to send the data and *after that* create a `StepVerifier` with the Flux received by the websocket and assert on the payload.
 +
-<1> `thenCancel()` is for ending the assertion without waiting for the websocket to close.
+<1> `thenCancel().verify()` is for ending the assertion without waiting for the websocket to close.
 <2> `block()` is for not to terminate the test before finishing the exchange.
 +
 This test is green, however assertions are not executed. Why?
 +
 _Stay tuned! We will find out on the next session..._ :)
+
+=== 2019.04.26.
+The final form of our test is the following:
+
+[source,java]
+----
+@Test
+public void echo() throws Exception {
+    WebSocketClient webSocketClient = new StandardWebSocketClient();
+    ReplayProcessor<WebSocketMessage> replayProcessor = ReplayProcessor.create();
+
+    webSocketClient.execute(getUrl("/websocket/echo"),
+        session -> session.send(Flux.just("1", "2", "4").map(session::textMessage))
+            .thenMany(session.receive().take(3))
+            .subscribeWith(replayProcessor)
+            .then())
+    .block();
+
+    StepVerifier.create(replayProcessor)
+            .assertNext(message -> assertPayloadEquals(message, "1"))
+            .assertNext(message -> assertPayloadEquals(message, "2"))
+            .assertNext(message -> assertPayloadEquals(message, "4"))
+            .verifyComplete();
+}
+----
+This is basically the same as in the example, except it uses the `ReplayProcessor` as a `Publisher` for the `StepVerifier`.
+
+We need the `ReplayProcessor`, because regardless of `session.receive().take(3)`, the session is not closed after 3 elements.
+
+For example, we had this:
+
+[source,java]
+----
+@Test
+public void echo() throws Exception {
+    WebSocketClient webSocketClient = new StandardWebSocketClient();
+    webSocketClient.execute(getUrl("/websocket/echo"),
+        session -> session.send(Flux.just("1", "2", "4").map(session::textMessage))
+            .thenMany(session.receive().take(3))
+            .compose(messages -> Mono.fromRunnable(() ->
+                StepVerifier.create(messages)
+                    .assertNext(message -> assertPayloadEquals(message, "1"))
+                    .assertNext(message -> assertPayloadEquals(message, "2"))
+                    .assertNext(message -> assertPayloadEquals(message, "4"))
+                    .verifyComplete()))
+            .then())
+        .block();
+}
+----
+The only difference is that assertions were moved just after `session.receive()`, so instead of subscribing on it, it is transformed into a `Mono` with the assertions.
+
+But this gets stuck when requesting the 4th message from the `WebSocket` for some reason that yet we failed to find out.
+
+NOTE: Above we used `compose()`, however in this case `transform()` and `as()` have the same effect.
